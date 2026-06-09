@@ -1923,7 +1923,7 @@ async function doWithdraw() {
     if (settingsData.withdrawApproval === true) {
       // MANUAL APPROVAL MODE - Wait for admin to approve/reject
       // Admin will either approve (then doWithdrawalApprove is called) or reject (then rejectWithdrawal is called)
-      await sendAdminNotification('withdrawal_pending', currentUsername, amount, 'Withdrawal request pending approval');
+      // Don't send notification here - only send when final status is set by admin
     } else {
       // AUTOMATIC MODE - Process withdrawal immediately
       await processWithdrawalToMarz(reqKey, userPhone, sendAmount, reference, txKey, adminTxKey, amount, fee);
@@ -1955,13 +1955,14 @@ async function processWithdrawalToMarz(reqKey, userPhone, sendAmount, reference,
   try {
     const sendResult = await marzSend(userPhone, sendAmount, reference, 'CapitalRise Withdrawal');
     if (sendResult && sendResult.status === 'success') {
-      // Success - update transaction and admin record
+      // Success - update transaction and admin record with FINAL status
       await db.ref('users/' + userId + '/transactions/' + txKey).update({ 
         status: 'completed', 
         note: `Withdrawal sent to ${userPhone} (Fee: ${fmt(fee)}, Received: ${fmt(sendAmount)})` 
       });
-      await db.ref('pendingWithdrawals/' + reqKey).update({ status: 'approved', processed: true });
+      await db.ref('pendingWithdrawals/' + reqKey).update({ status: 'approved', processed: true, notificationSent: true });
       await db.ref('adminTransactions/' + adminTxKey).update({ status: 'successful' });
+      // Only send ONE success notification
     } else {
       // Marz send failed - REFUND user instantly
       const userSnap = await db.ref('users/' + userId).get();
@@ -1972,8 +1973,9 @@ async function processWithdrawalToMarz(reqKey, userPhone, sendAmount, reference,
         balance: refundedBalance,
         [`transactions/${txKey}`]: { type: 'Withdrawal', amount: -amount, note: 'Withdrawal Failed - Refunded', date: dateStr(), status: 'failed' }
       });
-      await db.ref('pendingWithdrawals/' + reqKey).update({ status: 'failed', processed: true });
+      await db.ref('pendingWithdrawals/' + reqKey).update({ status: 'failed', processed: true, notificationSent: true });
       await db.ref('adminTransactions/' + adminTxKey).update({ status: 'failed' });
+      // Only send ONE failure notification
       await sendAdminNotification('withdrawal_auto_failed', username, amount, 'Marz send failed: ' + (sendResult?.message || 'Unknown error'));
     }
   } catch (sendError) {
@@ -1986,8 +1988,9 @@ async function processWithdrawalToMarz(reqKey, userPhone, sendAmount, reference,
       balance: refundedBalance,
       [`transactions/${txKey}`]: { type: 'Withdrawal', amount: -amount, note: 'Withdrawal Failed - Refunded', date: dateStr(), status: 'failed' }
     });
-    await db.ref('pendingWithdrawals/' + reqKey).update({ status: 'failed', processed: true });
+    await db.ref('pendingWithdrawals/' + reqKey).update({ status: 'failed', processed: true, notificationSent: true });
     await db.ref('adminTransactions/' + adminTxKey).update({ status: 'failed' });
+    // Only send ONE error notification
     await sendAdminNotification('withdrawal_auto_failed', username, amount, 'Withdrawal error: ' + sendError.message);
   }
 }
