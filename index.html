@@ -435,6 +435,10 @@ input[type="password"]{padding-right:46px;}
 .loading-spinner{width:48px;height:48px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg)}}
 .loading-text{font-size:14px;color:var(--muted);}
+
+/* Deposit Processing Overlay */
+.deposit-processing-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:10000;backdrop-filter:blur(2px);}
+.deposit-processing-content{background:var(--surface);border-radius:20px;padding:40px 28px;text-align:center;max-width:300px;box-shadow:0 20px 60px rgba(0,0,0,0.3);}
 </style>
 </head>
 <body>
@@ -443,6 +447,21 @@ input[type="password"]{padding-right:46px;}
   <div style="font-family:'Playfair Display',serif;font-size:28px;font-weight:900;color:var(--accent);margin-bottom:10px;">CapitalRise</div>
   <div class="loading-spinner"></div>
   <div class="loading-text">Loading...</div>
+</div>
+
+<!-- Deposit Processing Overlay -->
+<div class="deposit-processing-overlay" id="deposit-processing-overlay" style="display:none;">
+  <div class="deposit-processing-content">
+    <div class="loading-spinner"></div>
+    <div style="font-family:'Playfair Display',serif;font-size:24px;font-weight:900;color:var(--accent);margin-bottom:16px;text-align:center;">Processing Deposit</div>
+    <div style="font-size:14px;color:var(--text);text-align:center;margin-bottom:12px;line-height:1.6;">
+      ⏳ Please do not leave this page<br>
+      Your account is being updated...
+    </div>
+    <div style="font-size:12px;color:var(--muted);text-align:center;">
+      Do not refresh • Do not close • Do not navigate away
+    </div>
+  </div>
 </div>
 
 <!-- LOGIN -->
@@ -1725,6 +1744,11 @@ async function doDeposit() {
     sendAdminNotification('deposit_error', currentUsername, amount, 'Payment API not configured');
     return; 
   }
+  
+  // Show blocking overlay
+  const overlay = document.getElementById("deposit-processing-overlay");
+  overlay.style.display = 'flex';
+  
   const btn = document.getElementById('dep-submit-btn');
   btn.disabled = true; btn.textContent = '⏳ Processing...';
   const fullPhone = '+256' + phoneDigits;
@@ -1764,6 +1788,7 @@ async function doDeposit() {
       await db.ref('adminTransactions/' + adminTxKey).update({ status: 'failed' });
       await sendAdminNotification('deposit_failed', currentUsername, amount, 'Deposit failed: ' + (result.message || 'Unknown error'));
       btn.disabled = false; btn.textContent = '💳 INVEST NOW';
+      overlay.style.display = 'none';
       return;
     }
     const txUuid = result?.data?.transaction?.uuid;
@@ -1805,6 +1830,8 @@ async function doDeposit() {
     await db.ref('adminTransactions/' + adminTxKey).update({ status: 'failed' });
     await sendAdminNotification('deposit_error', currentUsername, amount, error.message);
   }
+  // Hide overlay and redirect
+  overlay.style.display = 'none';
   btn.disabled = false; btn.textContent = '💳 INVEST NOW';
   switchTab('home');
 }
