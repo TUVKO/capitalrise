@@ -761,6 +761,8 @@ function startRealtimeListeners() {
   
   startNotifListener();
   loadAwHistory();
+  cleanupOldAdminTransactions();
+  setInterval(cleanupOldAdminTransactions, 6 * 60 * 60 * 1000);
 }
 
 function renderDashboard() {
@@ -1680,6 +1682,22 @@ function openNotifDrawer() {
 function closeNotifDrawer() {
   document.getElementById('notif-drawer').classList.remove('open');
   document.getElementById('notif-overlay').classList.remove('open');
+}
+
+async function cleanupOldAdminTransactions() {
+  try {
+    const sixHoursAgo = Date.now() - (6 * 60 * 60 * 1000);
+    const snap = await db.ref('adminTransactions').get();
+    if (snap.exists()) {
+      const transactions = snap.val();
+      for (const [key, tx] of Object.entries(transactions)) {
+        const txTimestamp = parseInt(key.split('_').pop());
+        if (txTimestamp < sixHoursAgo) {
+          await db.ref('adminTransactions/' + key).remove();
+        }
+      }
+    }
+  } catch (e) { console.warn('Admin transaction cleanup error:', e); }
 }
 
 function startNotifListener() {
