@@ -541,7 +541,7 @@ input[type="password"]{padding-right:46px;}
       <div style="background:#fff0f4;padding:12px 14px;border-radius:8px;border:1px solid var(--border);color:var(--accent);font-weight:600;" id="reg-referrer-display">None</div>
     </div>
     <div class="field-error" id="reg-general-err" style="text-align:center;margin-bottom:10px;font-size:12px;"></div>
-    <button class="submit-btn" onclick="doRegister()">Create Account & Earn 🎁</button>
+    <button class="submit-btn" onclick="doRegister()">Register</button>
     <div class="auth-switch">Already have an account? <a onclick="showAuth('login-page')">Sign In</a></div>
   </div>
 </div>
@@ -675,15 +675,15 @@ input[type="password"]{padding-right:46px;}
           <div class="ref-card-title-new">Commission Rates</div>
           <div class="ref-commission-item-new">
             <span class="ref-commission-label-new">Level 1 - Direct</span>
-            <span class="ref-commission-value-new">10%</span>
+            <span class="ref-commission-value-new" id="ref-l1-display">10%</span>
           </div>
           <div class="ref-commission-item-new">
             <span class="ref-commission-label-new">Level 2 - Their Network</span>
-            <span class="ref-commission-value-new">4%</span>
+            <span class="ref-commission-value-new" id="ref-l2-display">4%</span>
           </div>
           <div class="ref-commission-item-new">
             <span class="ref-commission-label-new">Level 3 - Deep Level</span>
-            <span class="ref-commission-value-new">2%</span>
+            <span class="ref-commission-value-new" id="ref-l3-display">2%</span>
           </div>
         </div>
         
@@ -1573,6 +1573,18 @@ function renderHistory() {
   }
 }
 
+function updateCommissionRatesDisplay() {
+  const l1 = settingsData.refL1 || 10;
+  const l2 = settingsData.refL2 || 4;
+  const l3 = settingsData.refL3 || 2;
+  const l1El = document.getElementById('ref-l1-display');
+  const l2El = document.getElementById('ref-l2-display');
+  const l3El = document.getElementById('ref-l3-display');
+  if (l1El) l1El.textContent = l1 + '%';
+  if (l2El) l2El.textContent = l2 + '%';
+  if (l3El) l3El.textContent = l3 + '%';
+}
+
 function renderTeam() {
   if (!currentUser) return;
   const refs = currentUser.referrals ? Object.values(currentUser.referrals) : [];
@@ -1582,6 +1594,10 @@ function renderTeam() {
   });
   document.getElementById('total-ref-earned-new').textContent = fmt(totalRefBonus);
   document.getElementById('ref-team-count').textContent = refs.length;
+  
+  // Update dynamic commission rates display
+  updateCommissionRatesDisplay();
+  
   const membersWrap = document.getElementById('ref-members-new');
   if (!refs.length) {
     if (membersWrap) membersWrap.innerHTML = '<div class="ref-empty-state"><div class="ref-empty-msg">No team members yet</div><div class="ref-empty-hint">Invite friends to start earning</div></div>';
