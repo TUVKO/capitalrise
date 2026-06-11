@@ -11,6 +11,21 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://capitalrise-investment.site/logo.png">
 <title>CapitalRise Command Center</title>
+<script>
+// Dynamic logo cache busting - ensures latest logo.png is always previewed
+(function() {
+  const timestamp = Math.floor(Date.now() / 1000);
+  const logoUrl = 'https://capitalrise-investment.site/logo.png?v=' + timestamp;
+  
+  // Update og:image
+  const ogImage = document.querySelector('meta[property="og:image"]');
+  if (ogImage) ogImage.setAttribute('content', logoUrl);
+  
+  // Update twitter:image
+  const twitterImage = document.querySelector('meta[name="twitter:image"]');
+  if (twitterImage) twitterImage.setAttribute('content', logoUrl);
+})();
+</script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <style>
